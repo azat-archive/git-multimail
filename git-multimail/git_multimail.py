@@ -711,7 +711,7 @@ class Change(object):
 class Revision(Change):
     """A Change consisting of a single git commit."""
 
-    CC_RE = re.compile(r'(?:^|\s)C(c|C):\s*(?P<to>.+)(?:$|\s)')
+    CC_RE = re.compile(r'(?:^|\s)(?:C(?:c|C):\s*)(?P<to>.+)(?:$|\s)')
 
     def __init__(self, reference_change, rev, num, tot):
         Change.__init__(self, reference_change.environment)
@@ -724,11 +724,12 @@ class Revision(Change):
         self.author = read_git_output(['log', '--no-walk', '--format=%aN <%aE>', self.rev.sha1])
         self.recipients = self.environment.get_revision_recipients(self)
 
-        if self.environment.get_scancommitforcc(self):
+        if self.environment.get_scancommitforcc():
             message = read_git_output(['log', '--no-walk', '--format=%b', self.rev.sha1])
-            for m in re.findall(self.CC_RE, message):
-                cc_recipients.append(', ' + m.group('to'))
-            self.recipients.append(cc_recipients)
+            for to in re.findall(self.CC_RE, message):
+                self.recipients += ', '
+                self.recipients += str(to)
+                sys.stderr.write('Add %s to Cc\n' % str(to))
 
     def _compute_values(self):
         values = Change._compute_values(self)
