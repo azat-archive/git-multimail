@@ -711,6 +711,8 @@ class Change(object):
 class Revision(Change):
     """A Change consisting of a single git commit."""
 
+    CC_RE = re.compile(r'(?:^|\s)C(c|C):\s*(?P<to>.+)(?:$|\s)')
+
     def __init__(self, reference_change, rev, num, tot):
         Change.__init__(self, reference_change.environment)
         self.reference_change = reference_change
@@ -721,6 +723,12 @@ class Revision(Change):
         self.tot = tot
         self.author = read_git_output(['log', '--no-walk', '--format=%aN <%aE>', self.rev.sha1])
         self.recipients = self.environment.get_revision_recipients(self)
+
+        if self.environment.get_scancommitforcc(self):
+            message = read_git_output(['log', '--no-walk', '--format=%b', self.rev.sha1])
+            for m in re.findall(self.CC_RE, message):
+                cc_recipients.append(', ' + m.group('to'))
+            self.recipients.append(cc_recipients)
 
     def _compute_values(self):
         values = Change._compute_values(self)
@@ -1825,6 +1833,9 @@ class ConfigOptionsEnvironmentMixin(ConfigEnvironmentMixin):
             return None
         else:
             return self.__reply_to_commit
+
+    def get_scancommitforcc(self):
+        return self.config.get('scancommitforcc')
 
 
 class FilterLinesEnvironmentMixin(Environment):
