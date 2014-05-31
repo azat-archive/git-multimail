@@ -726,7 +726,8 @@ class Revision(Change):
         self.recipients = self.environment.get_revision_recipients(self)
         if self.environment.get_scancommitforcc():
             self.cc_recipients = ', '.join(to.strip() for to in self._cc_recipients())
-            sys.stderr.write('Add %s to CC\n' % self.cc_recipients)
+            if self.cc_recipients:
+                sys.stderr.write('Add %s to CC\n' % self.cc_recipients)
 
     def _cc_recipients(self):
         cc_recipients = []
