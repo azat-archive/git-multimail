@@ -736,7 +736,7 @@ class Revision(Change):
         for line in lines:
             m = re.match(self.CC_RE, line)
             if m:
-                cc_recipients.append(m.group(1))
+                cc_recipients.append(m.group('to'))
 
         return cc_recipients
 
