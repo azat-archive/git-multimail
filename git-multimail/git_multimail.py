@@ -712,7 +712,7 @@ class Change(object):
 class Revision(Change):
     """A Change consisting of a single git commit."""
 
-    CC_RE = re.compile(r'(?:^|\s)(?:C(?:c|C):\s*)(?P<to>.+)(?:$|\s)')
+    CC_RE = re.compile(r'^\s*(?:C(?:c|C):\s*)(?P<to>.+)\s*$')
 
     def __init__(self, reference_change, rev, num, tot):
         Change.__init__(self, reference_change.environment)
@@ -724,15 +724,17 @@ class Revision(Change):
         self.tot = tot
         self.author = read_git_output(['log', '--no-walk', '--format=%aN <%aE>', self.rev.sha1])
         self.recipients = self.environment.get_revision_recipients(self)
-        self.cc_recipients = ', '.join(to.strip() for to in self._cc_recipients())
+        if self.environment.get_scancommitforcc():
+            self.cc_recipients = ', '.join(to.strip() for to in self._cc_recipients())
+            sys.stderr.write('Add %s to CC\n' % self.cc_recipients)
 
     def _cc_recipients(self):
         cc_recipients = []
-        if self.environment.get_scancommitforcc():
-            message = read_git_output(['log', '--no-walk', '--format=%b', self.rev.sha1])
-            for to in re.findall(self.CC_RE, message):
-                self.cc_recipients.append(to)
-            sys.stderr.write('Add %s to Cc\n' % to)
+        message = read_git_output(['log', '--no-walk', '--format=%b', self.rev.sha1])
+        lines = message.strip().split('\n')
+        for line in lines:
+            if re.match(CC_RE, line):
+                cc_recipients.append(m.group(0))
 
         return cc_recipients
 
