@@ -733,7 +733,7 @@ class Revision(Change):
         message = read_git_output(['log', '--no-walk', '--format=%b', self.rev.sha1])
         lines = message.strip().split('\n')
         for line in lines:
-            if re.match(CC_RE, line):
+            if re.match(self.CC_RE, line):
                 cc_recipients.append(m.group(0))
 
         return cc_recipients
