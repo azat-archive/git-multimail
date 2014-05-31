@@ -230,6 +230,7 @@ how to provide full information about this reference change.
 REVISION_HEADER_TEMPLATE = """\
 Date: %(send_date)s
 To: %(recipients)s
+CC: %(cc_recipients)s
 Subject: %(emailprefix)s%(num)02d/%(tot)02d: %(oneline)s
 MIME-Version: 1.0
 Content-Type: text/plain; charset=%(charset)s
@@ -723,13 +724,17 @@ class Revision(Change):
         self.tot = tot
         self.author = read_git_output(['log', '--no-walk', '--format=%aN <%aE>', self.rev.sha1])
         self.recipients = self.environment.get_revision_recipients(self)
+        self.cc_recipients = ', '.join(to.strip() for to in self._cc_recipients())
 
+    def _cc_recipients(self):
+        cc_recipients = []
         if self.environment.get_scancommitforcc():
             message = read_git_output(['log', '--no-walk', '--format=%b', self.rev.sha1])
             for to in re.findall(self.CC_RE, message):
-                self.recipients += ', '
-                self.recipients += str(to)
-                sys.stderr.write('Add %s to Cc\n' % str(to))
+                self.cc_recipients.append(to)
+            sys.stderr.write('Add %s to Cc\n' % to)
+
+        return cc_recipients
 
     def _compute_values(self):
         values = Change._compute_values(self)
@@ -748,6 +753,7 @@ class Revision(Change):
         values['num'] = self.num
         values['tot'] = self.tot
         values['recipients'] = self.recipients
+        values['cc_recipients'] = self.cc_recipients
         values['oneline'] = oneline
         values['author'] = self.author
 
